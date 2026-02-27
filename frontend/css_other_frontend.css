@@ -1,0 +1,452 @@
+/* Сброс и базовые стили */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    color: #333;
+}
+
+/* Контейнер */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    background-color: white;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(50, 50, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.07);
+    overflow: hidden;
+    padding: 30px;
+}
+
+/* Заголовок */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+header h1 {
+    color: #2d3436;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    font-size: 2.2rem;
+}
+
+.subtitle {
+    color: #636e72;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+/* Секция ввода */
+.input-section {
+    margin-bottom: 25px;
+}
+
+.url-input-group {
+    display: flex;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 5px;
+    border: 2px solid #dfe6e9;
+    transition: all 0.3s ease;
+}
+
+.url-input-group:focus-within {
+    border-color: #6c5ce7;
+    box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+}
+
+.icon {
+    font-size: 1.2rem;
+    color: #6c5ce7;
+    padding: 0 15px;
+}
+
+#urlInput {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 18px 10px;
+    font-size: 1rem;
+    outline: none;
+    color: #2d3436;
+}
+
+.btn-parse {
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+    padding: 16px 30px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+.btn-parse:hover {
+    background: linear-gradient(90deg, #5b4fcf, #9087f0);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(108, 92, 231, 0.2);
+}
+
+.btn-parse:active {
+    transform: translateY(0);
+}
+
+.hint {
+    color: #636e72;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    margin-left: 15px;
+}
+
+/* Кнопки */
+.buttin-section{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding-bottom:20px;
+    border-bottom: 1px solid #eee;
+}
+
+.btn-middle {
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe);
+    color: white;
+    border: none;
+    padding: 16px 60px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-middle:hover {
+    background: linear-gradient(90deg, #5b4fcf, #9087f0);
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(108, 92, 231, 0.2);
+}
+
+.btn-middle:active {
+    transform: translateY(0);
+}
+
+
+
+/* Статус */
+.status-section {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 500;
+}
+.status.hidden {
+    display: none;
+}
+
+/* Результаты */
+.results-section h2 {
+    color: #2d3436;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+}
+
+/* Обёртка для адаптивности (горизонтальный скролл при узком экране) */
+.results-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0; /* небольшой отступ для скролла */
+}
+
+/* Базовая настройка строки */
+.grid-row {
+  display: grid;
+  /* Задаём ширину колонок: 
+     - ID: 70px, 
+     - Название: гибкое (минимум 180px), 
+     - Цена: 120px, 
+     - Рейтинг: 90px, 
+     - Наличие: 110px, 
+     - Дата: 130px */
+  grid-template-columns: 70px minmax(180px, 1fr) 120px 90px 110px 130px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+
+
+/* Строка-заголовок */
+.grid-row.header {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #2d3436;
+  border-bottom: 2px solid #dfe6e9;
+  border-radius: 12px 12px 0 0;
+}
+
+/* Обычная строка с данными */
+.grid-row.product-row {
+  background: white;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+/* Пустая строка-образец — визуально помечена */
+/* .grid-row.product-row.template {
+  opacity: 0.6;
+  border: 2px dashed #b2bec3;
+  background: #fdfdfe;
+} */
+
+/* Ячейки: обрезаем длинный текст, добавляем многоточие */
+.grid-row > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Пустые ячейки в строке-образце — показываем прочерк */
+/* .grid-row.product-row.template div:empty::before {
+  content: "—";
+  color: #b2bec3;
+  font-style: normal;
+} */
+
+/* Иконки в заголовках */
+.grid-row.header i {
+  margin-right: 8px;
+  color: #6c5ce7;
+}
+
+
+
+/* Результаты, если один товар */
+.results-card.single.hidden{
+    display: none;
+}
+.results-card.categories.hidden{
+    display: none;
+}
+
+/* Базовая настройка строки */
+.grid-row-single {
+  display: grid;
+  /* Задаём ширину колонок: 
+     - ID: 70px, 
+     - Название: гибкое (минимум 150px), 
+     - Цена: 100px, 
+     - Цена(без О.Б): 120px, 
+     - Рейтинг: 90px, 
+     - Наличие: 100px, 
+     - Дата: 100px */
+  grid-template-columns: 70px minmax(150px, 1fr) 100px 135px 90px 100px 100px;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+/* Строка-заголовок */
+.grid-row-single.header {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #2d3436;
+  border-bottom: 2px solid #dfe6e9;
+  border-radius: 12px 12px 0 0;
+}
+
+
+/* Обычная строка с данными */
+.grid-row-single.product-row {
+  background: white;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+/* Пустая строка-образец — визуально помечена */
+/* .grid-row-single.product-row.template {
+  opacity: 0.6;
+  border: 2px dashed #b2bec3;
+  background: #fdfdfe;
+} */
+
+/* Ячейки: обрезаем длинный текст, добавляем многоточие */
+.grid-row-single > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Пустые ячейки в строке-образце — показываем прочерк */
+/* .grid-row-single.product-row.template div:empty::before {
+  content: "—";
+  color: #b2bec3;
+  font-style: normal;
+} */
+
+/* Иконки в заголовках */
+.grid-row-single.header i {
+  margin-right: 8px;
+  color: #6c5ce7;
+}
+
+
+
+
+
+
+
+/* Ошибка */
+.error-alert {
+    background: #ffebee;
+    color: #c62828;
+    padding: 16px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 5px solid #ef5350;
+}
+
+.error-alert.hidden {
+    display: none;
+}
+
+/* Инфо-бокс */
+.info-box {
+    background: #e8f4fd;
+    border-radius: 15px;
+    padding: 25px;
+    margin-top: 30px;
+}
+
+.info-box h3 {
+    color: #2d3436;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-box p {
+    margin-bottom: 10px;
+    line-height: 1.5;
+    color: #4a5568;
+}
+
+.info-box code {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    color: #6c5ce7;
+}
+
+/* Футер */
+footer {
+    margin-top: 30px;
+    text-align: center;
+    color: #636e72;
+    font-size: 0.9rem;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+
+
+
+
+
+
+
+/* Адаптивность: если экран очень узкий, колонки не сжимаются меньше минимума,
+   и включается горизонтальный скролл у .results-grid */
+@media (max-width: 900px) {
+  .grid-row {
+    grid-template-columns: 70px 180px 120px 90px 110px 130px; /* фиксированная ширина */
+  }
+}
+
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+    }
+
+    header h1 {
+        font-size: 1.8rem;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .url-input-group {
+        flex-direction: column;
+        align-items: stretch;
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+
+    .icon {
+        display: none;
+    }
+
+    #urlInput {
+        background: #f8f9fa;
+        border: 2px solid #dfe6e9;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        padding: 16px;
+    }
+
+    .btn-parse {
+        justify-content: center;
+        padding: 18px;
+        width: 100%;
+    }
+}

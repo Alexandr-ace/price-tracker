@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Тест запроса к API</title>
+  </head>
+  <body>
+    <h2>Отправка URL на сервер</h2>
+    <input
+      type="text"
+      id="urlInput"
+      placeholder="Введите любой URL"
+      style="width: 300px"
+    />
+    <button id="sendBtn">Отправить</button>
+
+    <div
+      id="result"
+      style="margin-top: 20px; background: #f0f0f0; padding: 10px"
+    ></div>
+
+    <script>
+      // Получаем элементы
+      const urlInput = document.getElementById("urlInput");
+      const sendBtn = document.getElementById("sendBtn");
+      const resultDiv = document.getElementById("result");
+
+      // Обработчик клика на кнопку
+      sendBtn.addEventListener("click", async () => {
+        const url = urlInput.value.trim();
+        if (!url) {
+          resultDiv.textContent = "Пожалуйста, введите URL";
+          return;
+        }
+
+        // Показываем, что идёт загрузка
+        resultDiv.textContent = "Отправка...";
+
+        try {
+          // Отправляем POST-запрос
+          const response = await fetch("http://localhost:8000/send-url", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: url }), // преобразуем объект в JSON
+          });
+
+          // Проверяем статус ответа
+          if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+          }
+
+          // Получаем JSON из ответа
+          const data = await response.json();
+
+          // Отображаем результат
+          resultDiv.innerHTML = `
+                    <strong>Статус:</strong> ${data.status}<br>
+                    <strong>Полученный URL:</strong> ${data.received_url}<br>
+                    <strong>Сообщение:</strong> ${data.message}
+                `;
+        } catch (error) {
+          resultDiv.textContent = `Ошибка: ${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>

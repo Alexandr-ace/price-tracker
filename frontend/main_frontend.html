@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Учебный Парсер</title>
+    <link rel="stylesheet" href="css_frontend.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1><i class="fas fa-code"></i> Учебный Веб-Парсер</h1>
+        <p class="subtitle">
+          Введите URL веб-страницы, чтобы получить её заголовок и мета-описание
+        </p>
+      </header>
+
+      <main>
+        <div class="input-section">
+          <div class="url-input-group">
+            <i class="fas fa-link icon"></i>
+            <input
+              type="url"
+              id="urlInput"
+              placeholder="https://example.com"
+              required
+            />
+            <button id="parseButton" class="btn-parse">
+              <i class="fas fa-play"></i> Парсить
+            </button>
+          </div>
+          <p class="hint">Попробуйте: https://example.com</p>
+        </div>
+
+        <div class="status-section">
+          <div id="status" class="status hidden">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span id="statusText">Идет парсинг...</span>
+          </div>
+        </div>
+
+        <div class="results-section">
+          <h2><i class="fas fa-poll"></i> Результаты</h2>
+          <div class="results-card">
+            <div class="result-item">
+              <label
+                ><i class="fas fa-heading"></i> Заголовок страницы
+                (Title):</label
+              >
+              <div id="titleResult" class="result-box empty">
+                Здесь появится заголовок...
+              </div>
+            </div>
+            <div class="result-item">
+              <label
+                ><i class="fas fa-comment-alt"></i> Мета-описание
+                (Description):</label
+              >
+              <div id="descriptionResult" class="result-box empty">
+                Здесь появится описание...
+              </div>
+            </div>
+          </div>
+          <div id="errorAlert" class="error-alert hidden">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText">Произошла ошибка</span>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <h3><i class="fas fa-info-circle"></i> Как это работает?</h3>
+          <p>1. Бэкенд (ваш парсер) получит URL.</p>
+          <p>2. Он загрузит HTML-код страницы.</p>
+          <p>
+            3. Извлечёт данные из тегов <code>&lt;title&gt;</code> и
+            <code>&lt;meta name="description"&gt;</code>.
+          </p>
+          <p>4. Вернёт результат, который вы увидите выше.</p>
+        </div>
+      </main>
+
+      <footer>
+        <p>Учебный проект по разработке парсера | 2024</p>
+      </footer>
+    </div>
+
+    <script src="js_frontend.js"></script>
+  </body>
+</html>
