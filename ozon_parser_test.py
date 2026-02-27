@@ -20,6 +20,7 @@ from pydantic import BaseModel
 from urllib.parse import urlparse
 # Активировать окружение venv\Scripts\activate
 # Теперь вы можете запустить сервер командой: uvicorn ozon_parser_test:app --reload
+# Заливаем в гит: git add . , git commit -m "Описание изменений" , git push
 # Берем название, цену, наличие, рейтинг с со страниц одного товара
 from base import (main_category, add_product, delete_all_products, get_first_fetch_date,
                   init_meta_table_many, sanitize_table_name_many, is_table_in_meta_many, add_to_meta_table_many, show_all_products)
