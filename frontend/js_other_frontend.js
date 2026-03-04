@@ -8,7 +8,7 @@ const lowBtn = document.getElementById("lowButton");
 const backBtn = document.getElementById("backButton");
 const statusInput = document.getElementById("status");
 const errorInput = document.getElementById("errorAlert");
-const errorText = document.getElementById("errorText"); // не использовался, но добавим для полноты
+const errorText = document.getElementById("errorText");
 const input = document.getElementById("urlInput");
 const clearIcon = document.getElementById("clearIcon");
 
@@ -24,9 +24,10 @@ const containerSingle = document.getElementById("container-single");
 const categoryCard = document.querySelector(".results-card.categories");
 const singleCard = document.querySelector(".results-card.single");
 
-let currentProducts = []; // массив товаров (для категории или истории одного товара)
+// Глобальные переменные состояния
+let originalProducts = []; // неизменная копия данных с сервера
+let displayProducts = []; // данные, которые сейчас отображаются
 let currentType = ""; // 'category' или 'product'
-let functionlProducts = []; // копия исходных данных, чтобы можно было сбросить фильтры
 
 // ========== ПРОВЕРКИ НА ЭТАПЕ ЗАГРУЗКИ ==========
 console.log("=== Проверка элементов DOM ===");
@@ -41,32 +42,11 @@ console.log("containerSingle:", containerSingle);
 console.log("categoryCard:", categoryCard);
 console.log("singleCard:", singleCard);
 
-// Если шаблоны найдены, удалим их из DOM, чтобы они не отображались
+// Удаляем шаблоны из DOM (они больше не нужны как видимые элементы)
 if (templateRow) templateRow.remove();
 if (templateRowSingle) templateRowSingle.remove();
 
-// Функция, которая обновляет видимость крестика
-function toggleClearIcon() {
-  if (input.value.trim() !== "") {
-    clearIcon.classList.remove("fas-hidden"); // показываем
-  } else {
-    clearIcon.classList.add("fas-hidden"); // скрываем
-  }
-}
-
-// Слушаем событие ввода (input) — срабатывает при каждом изменении
-input.addEventListener("input", toggleClearIcon);
-
-// Слушаем клик по крестику
-clearIcon.addEventListener("click", function () {
-  input.value = ""; // очищаем поле
-  input.focus(); // возвращаем фокус (опционально)
-  toggleClearIcon(); // скрываем крестик (можно и просто add('fas-hidden'), но лучше вызвать функцию)
-});
-
-// При загрузке страницы проверяем, есть ли уже значение (например, если поле не пустое)
-toggleClearIcon();
-
+// ---------- Функция отрисовки (использует глобальные displayProducts и currentType) ----------
 function renderProducts() {
   // Очищаем оба контейнера от старых строк (кроме заголовков)
   document
@@ -86,7 +66,7 @@ function renderProducts() {
       console.error("Шаблон для категорий не найден");
       return;
     }
-    functionlProducts.forEach((product, index) => {
+    displayProducts.forEach((product, index) => {
       try {
         const row = templateRow.cloneNode(true);
         row.querySelector(".product-id").textContent = product[0] || "—";
@@ -119,7 +99,7 @@ function renderProducts() {
       console.error("Шаблон для одного товара не найден");
       return;
     }
-    functionlProducts.forEach((product, index) => {
+    displayProducts.forEach((product, index) => {
       try {
         const row = templateRowSingle.cloneNode(true);
         row.querySelector(".product-id").textContent = product[0] || "—";
@@ -153,8 +133,65 @@ function renderProducts() {
   }
 }
 
+// ---------- Функция фильтрации выбросов (IQR) ----------
+function filterOutliers() {
+  if (originalProducts.length < 4) {
+    // Если данных мало, просто показываем оригинал
+    displayProducts = originalProducts.slice();
+    renderProducts();
+    return;
+  }
+
+  // Извлекаем цены в числа (удаляем пробелы и символ ₽)
+  const prices = originalProducts.map((p) => {
+    const priceStr = currentType === "category" ? p[2] : p[3];
+    return parseFloat(priceStr.replace(/\s/g, "").replace("₽", ""));
+  });
+
+  // Сортируем цены
+  prices.sort((a, b) => a - b);
+
+  // Квартили
+  const q1 = prices[Math.floor(prices.length * 0.25)];
+  const q3 = prices[Math.floor(prices.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+
+  // Фильтруем оригинальный массив
+  displayProducts = originalProducts.filter((p) => {
+    const price = parseFloat(
+      (currentType === "category" ? p[2] : p[3])
+        .replace(/\s/g, "")
+        .replace("₽", ""),
+    );
+    return price >= lowerBound && price <= upperBound;
+  });
+
+  renderProducts();
+}
+
+// ---------- Вспомогательная функция для временных сообщений ----------
+function showTemporaryError(message) {
+  errorText.textContent = message;
+  errorInput.classList.remove("hidden");
+  setTimeout(() => errorInput.classList.add("hidden"), 4000);
+}
+
+// ---------- Кнопка "Очистить поле ввода" (крестик) ----------
+function toggleClearIcon() {
+  clearIcon.classList.toggle("fas-hidden", input.value.trim() === "");
+}
+input.addEventListener("input", toggleClearIcon);
+clearIcon.addEventListener("click", () => {
+  input.value = "";
+  input.focus();
+  toggleClearIcon();
+});
+toggleClearIcon(); // начальное состояние
+
+// ---------- Основной обработчик: парсинг URL ----------
 sendBtn.addEventListener("click", async () => {
-  // Скрываем старые ошибки и показываем статус
   errorInput.classList.add("hidden");
   statusInput.classList.remove("hidden");
 
@@ -185,19 +222,22 @@ sendBtn.addEventListener("click", async () => {
       throw new Error("Некорректный формат ответа от сервера");
     }
 
-    const currentType = data[0]; // 'category' или 'product'
-    const currentProducts = data[1]; // массив товаров
+    const typeFromServer = data[0];
+    const productsFromServer = data[1];
 
-    console.log(`Тип страницы: ${currentType}`);
-    console.log("Товары:", currentProducts);
+    console.log(`Тип страницы: ${typeFromServer}`);
+    console.log("Товары:", productsFromServer);
 
-    if (!Array.isArray(currentProducts)) {
+    if (!Array.isArray(productsFromServer)) {
       throw new Error("Данные товаров не являются массивом");
     }
 
-    // Сохраняем исходные данные (для будущих кнопок)
-    functionlProducts = currentProducts.slice(); // копия
-    // Вызываем отрисовку
+    // Сохраняем глобальные данные
+    currentType = typeFromServer;
+    originalProducts = productsFromServer.slice(); // копия оригинала
+    displayProducts = productsFromServer.slice(); // начинаем с отображения оригинала
+
+    // Отрисовываем
     renderProducts();
 
     statusInput.classList.add("hidden");
@@ -209,37 +249,98 @@ sendBtn.addEventListener("click", async () => {
   }
 });
 
-function filterOutliers() {
-  // Если товаров меньше 4, фильтрация бессмысленна
-  if (functionlProducts.length < 4) return functionlProducts.slice();
+// ---------- Кнопка "Очистить выбросы" (фильтрация) ----------
+clearBtn.addEventListener("click", () => {
+  if (originalProducts.length === 0) {
+    showTemporaryError("Сначала загрузите данные");
+    return;
+  }
+  let beforeFilterOutliers = originalProducts.length;
+  filterOutliers();
+  let afterFilterOutliers = originalProducts.length;
+  let numberGoods = beforeFilterOutliers - afterFilterOutliers;
+  alert(`После очистки было исключено: ${numberGoods} товаров`);
+});
 
-  // Извлекаем цены в числа (удаляем пробелы и символ ₽)
-  const prices = functionlProducts.map((p) => {
-    const priceStr = currentType === "category" ? p[2] : p[3]; // для истории берём цену без карты (индекс 3)
-    return parseFloat(priceStr.replace(/\s/g, "").replace("₽", ""));
-  });
-
-  // Сортируем цены
-  prices.sort((a, b) => a - b);
-
-  // Вычисляем первый и третий квартили
-  const q1 = prices[Math.floor(prices.length * 0.25)];
-  const q3 = prices[Math.floor(prices.length * 0.75)];
-  const iqr = q3 - q1;
-  const lowerBound = q1 - 1.5 * iqr;
-  const upperBound = q3 + 1.5 * iqr;
-
-  // Фильтруем исходный массив, оставляя только те товары, цена которых в границах
-  functionlProducts = functionlProducts.filter((p) => {
+// ---------- Кнопка "Самое большое" ----------
+highBtn.addEventListener("click", () => {
+  if (displayProducts.length === 0) {
+    showTemporaryError("Нет данных для поиска максимума");
+    return;
+  }
+  let maxProduct = displayProducts.reduce((max, p) => {
     const price = parseFloat(
       (currentType === "category" ? p[2] : p[3])
         .replace(/\s/g, "")
         .replace("₽", ""),
     );
-    return price >= lowerBound && price <= upperBound;
+    const maxPrice = max
+      ? parseFloat(
+          (currentType === "category" ? max[2] : max[3])
+            .replace(/\s/g, "")
+            .replace("₽", ""),
+        )
+      : -Infinity;
+    return price > maxPrice ? p : max;
+  }, null);
+  if (maxProduct) {
+    displayProducts = [maxProduct];
+    renderProducts();
+  }
+});
+
+// ---------- Кнопка "Самое маленькое" ----------
+lowBtn.addEventListener("click", () => {
+  if (displayProducts.length === 0) {
+    showTemporaryError("Нет данных для поиска минимума");
+    return;
+  }
+  let minProduct = displayProducts.reduce((min, p) => {
+    const price = parseFloat(
+      (currentType === "category" ? p[2] : p[3])
+        .replace(/\s/g, "")
+        .replace("₽", ""),
+    );
+    const minPrice = min
+      ? parseFloat(
+          (currentType === "category" ? min[2] : min[3])
+            .replace(/\s/g, "")
+            .replace("₽", ""),
+        )
+      : Infinity;
+    return price < minPrice ? p : min;
+  }, null);
+  if (minProduct) {
+    displayProducts = [minProduct];
+    renderProducts();
+  }
+});
+
+// ---------- Кнопка "Среднее" ----------
+middleBtn.addEventListener("click", () => {
+  if (displayProducts.length === 0) {
+    showTemporaryError("Нет данных для вычисления среднего");
+    return;
+  }
+  let sum = 0;
+  displayProducts.forEach((p) => {
+    const price = parseFloat(
+      (currentType === "category" ? p[2] : p[3])
+        .replace(/\s/g, "")
+        .replace("₽", ""),
+    );
+    sum += price;
   });
+  const avg = sum / displayProducts.length;
+  alert(`Средняя цена: ${avg.toFixed(2)} ₽`);
+});
 
+// ---------- Кнопка "Назад" (сброс к исходным данным) ----------
+backBtn.addEventListener("click", () => {
+  if (originalProducts.length === 0) {
+    showTemporaryError("Нет исходных данных");
+    return;
+  }
+  displayProducts = originalProducts.slice();
   renderProducts();
-}
-
-clearBtn.addEventListener("click", filterOutliers);
+});
