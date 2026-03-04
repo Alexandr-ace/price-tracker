@@ -1,9 +1,11 @@
 // Получаем элементы
 const urlInput = document.getElementById("urlInput");
 const sendBtn = document.getElementById("parseButton");
+const clearBtn = document.getElementById("clearButton");
 const highBtn = document.getElementById("highButton");
 const middleBtn = document.getElementById("middleButton");
 const lowBtn = document.getElementById("lowButton");
+const backBtn = document.getElementById("backButton");
 const statusInput = document.getElementById("status");
 const errorInput = document.getElementById("errorAlert");
 const errorText = document.getElementById("errorText"); // не использовался, но добавим для полноты
@@ -65,18 +67,96 @@ clearIcon.addEventListener("click", function () {
 // При загрузке страницы проверяем, есть ли уже значение (например, если поле не пустое)
 toggleClearIcon();
 
-sendBtn.addEventListener("click", async () => {
-  // Скрываем старые ошибки и показываем статус
-  errorInput.classList.add("hidden");
-  statusInput.classList.remove("hidden");
-
-  // Очищаем предыдущие строки (кроме заголовков)
+function renderProducts() {
+  // Очищаем оба контейнера от старых строк (кроме заголовков)
   document
     .querySelectorAll(".product-row:not(.header)")
     .forEach((row) => row.remove());
   document
     .querySelectorAll(".product-row-single:not(.header)")
     .forEach((row) => row.remove());
+
+  // Скрываем обе карточки, потом покажем нужную
+  categoryCard.classList.add("hidden");
+  singleCard.classList.add("hidden");
+
+  if (currentType === "category") {
+    categoryCard.classList.remove("hidden");
+    if (!templateRow) {
+      console.error("Шаблон для категорий не найден");
+      return;
+    }
+    functionlProducts.forEach((product, index) => {
+      try {
+        const row = templateRow.cloneNode(true);
+        row.querySelector(".product-id").textContent = product[0] || "—";
+        row.querySelector(".product-title").textContent = product[1] || "—";
+        row.querySelector(".product-price").textContent = product[2] || "—";
+
+        const rating = parseFloat(product[3]);
+        row.querySelector(".product-rating").textContent = isNaN(rating)
+          ? "—"
+          : rating.toFixed(1);
+
+        row.querySelector(".product-availability").textContent =
+          product[4] === "in_stock" ? "В наличии" : "Нет в наличии";
+
+        row.querySelector(".product-date").textContent =
+          product[5] || new Date().toLocaleDateString("ru-RU");
+
+        containerCategories.appendChild(row);
+      } catch (err) {
+        console.error(
+          `Ошибка при обработке товара #${index} (категория):`,
+          err,
+          product,
+        );
+      }
+    });
+  } else if (currentType === "product") {
+    singleCard.classList.remove("hidden");
+    if (!templateRowSingle) {
+      console.error("Шаблон для одного товара не найден");
+      return;
+    }
+    functionlProducts.forEach((product, index) => {
+      try {
+        const row = templateRowSingle.cloneNode(true);
+        row.querySelector(".product-id").textContent = product[0] || "—";
+        row.querySelector(".product-title").textContent = product[1] || "—";
+        row.querySelector(".product-price").textContent = product[2] || "—";
+        row.querySelector(".product-price-notc").textContent =
+          product[3] || "—";
+
+        const rating = parseFloat(product[4]);
+        row.querySelector(".product-rating").textContent = isNaN(rating)
+          ? "—"
+          : rating.toFixed(1);
+
+        row.querySelector(".product-availability").textContent =
+          product[5] === "in_stock" ? "В наличии" : "Нет в наличии";
+
+        row.querySelector(".product-date").textContent =
+          product[6] || new Date().toLocaleDateString("ru-RU");
+
+        containerSingle.appendChild(row);
+      } catch (err) {
+        console.error(
+          `Ошибка при обработке товара #${index} (один товар):`,
+          err,
+          product,
+        );
+      }
+    });
+  } else {
+    console.error(`Неизвестный тип: ${currentType}`);
+  }
+}
+
+sendBtn.addEventListener("click", async () => {
+  // Скрываем старые ошибки и показываем статус
+  errorInput.classList.add("hidden");
+  statusInput.classList.remove("hidden");
 
   const url = urlInput.value.trim();
   if (!url) {
@@ -101,103 +181,24 @@ sendBtn.addEventListener("click", async () => {
     const data = await response.json();
     console.log("Ответ от сервера (сырой):", data);
 
-    // Проверяем структуру ответа
     if (!Array.isArray(data) || data.length < 2) {
       throw new Error("Некорректный формат ответа от сервера");
     }
 
-    currentType = data[0]; // 'category' или 'product'
+    const currentType = data[0]; // 'category' или 'product'
     const currentProducts = data[1]; // массив товаров
 
     console.log(`Тип страницы: ${currentType}`);
-    console.log("Товары (currentProducts):", currentProducts);
-    console.log(
-      "currentProducts является массивом?",
-      Array.isArray(currentProducts),
-    );
+    console.log("Товары:", currentProducts);
 
     if (!Array.isArray(currentProducts)) {
       throw new Error("Данные товаров не являются массивом");
     }
 
-    // Скрываем обе карточки на всякий случай
-    categoryCard.classList.add("hidden");
-    singleCard.classList.add("hidden");
-
-    if (currentType === "category") {
-      // Показываем карточку категорий
-      categoryCard.classList.remove("hidden");
-
-      currentProducts.forEach((product, index) => {
-        try {
-          if (!templateRow) throw new Error("Шаблон для категорий не найден");
-
-          const row = templateRow.cloneNode(true);
-          // Заполняем ячейки
-          row.querySelector(".product-id").textContent = product[0] || "—";
-          row.querySelector(".product-title").textContent = product[1] || "—";
-          row.querySelector(".product-price").textContent = product[2] || "—";
-
-          const rating = parseFloat(product[3]);
-          row.querySelector(".product-rating").textContent = isNaN(rating)
-            ? "—"
-            : rating.toFixed(1);
-
-          row.querySelector(".product-availability").textContent =
-            product[4] === "in_stock" ? "В наличии" : "Нет в наличии";
-
-          row.querySelector(".product-date").textContent =
-            product[5] || new Date().toLocaleDateString("ru-RU");
-
-          containerCategories.appendChild(row);
-        } catch (err) {
-          console.error(
-            `Ошибка при обработке товара #${index} (категория):`,
-            err,
-            product,
-          );
-        }
-      });
-    } else if (currentType === "product") {
-      // Показываем карточку одного товара
-      singleCard.classList.remove("hidden");
-
-      currentProducts.forEach((product, index) => {
-        try {
-          if (!templateRowSingle)
-            throw new Error("Шаблон для одного товара не найден");
-
-          const row = templateRowSingle.cloneNode(true);
-          // Заполняем ячейки для одного товара (7 полей)
-          row.querySelector(".product-id").textContent = product[0] || "—";
-          row.querySelector(".product-title").textContent = product[1] || "—";
-          row.querySelector(".product-price").textContent = product[2] || "—";
-          row.querySelector(".product-price-notc").textContent =
-            product[3] || "—";
-
-          const rating = parseFloat(product[4]);
-          row.querySelector(".product-rating").textContent = isNaN(rating)
-            ? "—"
-            : rating.toFixed(1);
-
-          row.querySelector(".product-availability").textContent =
-            product[5] === "in_stock" ? "В наличии" : "Нет в наличии";
-
-          row.querySelector(".product-date").textContent =
-            product[6] || new Date().toLocaleDateString("ru-RU");
-
-          containerSingle.appendChild(row);
-        } catch (err) {
-          console.error(
-            `Ошибка при обработке товара #${index} (один товар):`,
-            err,
-            product,
-          );
-        }
-      });
-    } else {
-      throw new Error(`Неизвестный тип страницы: ${currentType}`);
-    }
+    // Сохраняем исходные данные (для будущих кнопок)
+    functionlProducts = currentProducts.slice(); // копия
+    // Вызываем отрисовку
+    renderProducts();
 
     statusInput.classList.add("hidden");
   } catch (error) {
@@ -208,16 +209,37 @@ sendBtn.addEventListener("click", async () => {
   }
 });
 
-highBtn.addEventListener("click", async () => {
-  // Скрываем старые ошибки и показываем статус
-  errorInput.classList.add("hidden");
-  statusInput.classList.remove("hidden");
+function filterOutliers() {
+  // Если товаров меньше 4, фильтрация бессмысленна
+  if (functionlProducts.length < 4) return functionlProducts.slice();
 
-  // Очищаем предыдущие строки (кроме заголовков)
-  document
-    .querySelectorAll(".product-row:not(.header)")
-    .forEach((row) => row.remove());
-  document
-    .querySelectorAll(".product-row-single:not(.header)")
-    .forEach((row) => row.remove());
-});
+  // Извлекаем цены в числа (удаляем пробелы и символ ₽)
+  const prices = functionlProducts.map((p) => {
+    const priceStr = currentType === "category" ? p[2] : p[3]; // для истории берём цену без карты (индекс 3)
+    return parseFloat(priceStr.replace(/\s/g, "").replace("₽", ""));
+  });
+
+  // Сортируем цены
+  prices.sort((a, b) => a - b);
+
+  // Вычисляем первый и третий квартили
+  const q1 = prices[Math.floor(prices.length * 0.25)];
+  const q3 = prices[Math.floor(prices.length * 0.75)];
+  const iqr = q3 - q1;
+  const lowerBound = q1 - 1.5 * iqr;
+  const upperBound = q3 + 1.5 * iqr;
+
+  // Фильтруем исходный массив, оставляя только те товары, цена которых в границах
+  functionlProducts = functionlProducts.filter((p) => {
+    const price = parseFloat(
+      (currentType === "category" ? p[2] : p[3])
+        .replace(/\s/g, "")
+        .replace("₽", ""),
+    );
+    return price >= lowerBound && price <= upperBound;
+  });
+
+  renderProducts();
+}
+
+clearBtn.addEventListener("click", filterOutliers);
