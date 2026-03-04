@@ -13,7 +13,7 @@
   <body>
     <div class="container">
       <header>
-        <h1><i class="fas fa-code"></i> Учебный Трекер цен</h1>
+        <h1><i class="fas fa-code"></i>Трекер цен</h1>
         <p class="subtitle">
           Введите URL веб-страницы, чтобы получить её заголовок и мета-описание
         </p>
@@ -28,18 +28,19 @@
               placeholder="https://example.com"
               required
             />
+            <i class="fas fa-times-circle icon fas-hidden" id="clearIcon"></i>
             <button id="parseButton" class="btn-parse">
               <i class="fas fa-play"></i> Парсить
             </button>
           </div>
-          <p class="hint">Попробуйте: https://example.com</p>
         </div>
 
         <div class="buttin-section">
-          <button class="btn-middle">Среднее(урезанное)</button>
-          <button class="btn-middle">Большее</button>
-          <button class="btn-middle">Среднее</button>
-          <button class="btn-middle">Меньшее</button>
+          <button class="btn-middle" id="clearButton">Очистка</button>
+          <button class="btn-middle" id="highButton">Большее</button>
+          <button class="btn-middle" id="middleButton">Среднее</button>
+          <button class="btn-middle" id="lowButton">Меньшее</button>
+          <button class="btn-middle" id="Back">Назад</button>
           <button class="btn-middle">Excel-файл</button>
         </div>
 

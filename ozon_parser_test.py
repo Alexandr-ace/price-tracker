@@ -495,8 +495,9 @@ def main_category_product(placeholder, all_products):
                 list_products = show_all_products(name)
                 ###############################
                 # Сохраняем в файл
-                df = file_csv_funk(
-                    all_products, filename_prefix='ozon_products')
+                # df = file_csv_funk(
+                #     all_products, filename_prefix='ozon_products')
+                print(list_products)
                 return list_products
             else:
                 print(
@@ -529,8 +530,9 @@ def main_category_product(placeholder, all_products):
                     add_product(name, title, price, rating, availability)
                 # Сохраняем в файл
                 list_products = show_all_products(name)
-                df = file_csv_funk(
-                    all_products, filename_prefix='ozon_products')
+                # df = file_csv_funk(
+                #     all_products, filename_prefix='ozon_products')
+                print(list_products)
                 return list_products
     else:
         print("❌ Не удалось получить название группы товара")

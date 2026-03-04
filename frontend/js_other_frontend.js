@@ -1,9 +1,14 @@
 // Получаем элементы
 const urlInput = document.getElementById("urlInput");
 const sendBtn = document.getElementById("parseButton");
+const highBtn = document.getElementById("highButton");
+const middleBtn = document.getElementById("middleButton");
+const lowBtn = document.getElementById("lowButton");
 const statusInput = document.getElementById("status");
 const errorInput = document.getElementById("errorAlert");
 const errorText = document.getElementById("errorText"); // не использовался, но добавим для полноты
+const input = document.getElementById("urlInput");
+const clearIcon = document.getElementById("clearIcon");
 
 // Шаблоны строк
 const templateRow = document.querySelector(".product-row"); // для категорий
@@ -16,6 +21,10 @@ const containerSingle = document.getElementById("container-single");
 // Карточки (блоки с таблицами)
 const categoryCard = document.querySelector(".results-card.categories");
 const singleCard = document.querySelector(".results-card.single");
+
+let currentProducts = []; // массив товаров (для категории или истории одного товара)
+let currentType = ""; // 'category' или 'product'
+let functionlProducts = []; // копия исходных данных, чтобы можно было сбросить фильтры
 
 // ========== ПРОВЕРКИ НА ЭТАПЕ ЗАГРУЗКИ ==========
 console.log("=== Проверка элементов DOM ===");
@@ -33,6 +42,28 @@ console.log("singleCard:", singleCard);
 // Если шаблоны найдены, удалим их из DOM, чтобы они не отображались
 if (templateRow) templateRow.remove();
 if (templateRowSingle) templateRowSingle.remove();
+
+// Функция, которая обновляет видимость крестика
+function toggleClearIcon() {
+  if (input.value.trim() !== "") {
+    clearIcon.classList.remove("fas-hidden"); // показываем
+  } else {
+    clearIcon.classList.add("fas-hidden"); // скрываем
+  }
+}
+
+// Слушаем событие ввода (input) — срабатывает при каждом изменении
+input.addEventListener("input", toggleClearIcon);
+
+// Слушаем клик по крестику
+clearIcon.addEventListener("click", function () {
+  input.value = ""; // очищаем поле
+  input.focus(); // возвращаем фокус (опционально)
+  toggleClearIcon(); // скрываем крестик (можно и просто add('fas-hidden'), но лучше вызвать функцию)
+});
+
+// При загрузке страницы проверяем, есть ли уже значение (например, если поле не пустое)
+toggleClearIcon();
 
 sendBtn.addEventListener("click", async () => {
   // Скрываем старые ошибки и показываем статус
@@ -75,14 +106,17 @@ sendBtn.addEventListener("click", async () => {
       throw new Error("Некорректный формат ответа от сервера");
     }
 
-    const type = data[0]; // 'category' или 'product'
-    const products = data[1]; // массив товаров
+    currentType = data[0]; // 'category' или 'product'
+    const currentProducts = data[1]; // массив товаров
 
-    console.log(`Тип страницы: ${type}`);
-    console.log("Товары (products):", products);
-    console.log("products является массивом?", Array.isArray(products));
+    console.log(`Тип страницы: ${currentType}`);
+    console.log("Товары (currentProducts):", currentProducts);
+    console.log(
+      "currentProducts является массивом?",
+      Array.isArray(currentProducts),
+    );
 
-    if (!Array.isArray(products)) {
+    if (!Array.isArray(currentProducts)) {
       throw new Error("Данные товаров не являются массивом");
     }
 
@@ -90,11 +124,11 @@ sendBtn.addEventListener("click", async () => {
     categoryCard.classList.add("hidden");
     singleCard.classList.add("hidden");
 
-    if (type === "category") {
+    if (currentType === "category") {
       // Показываем карточку категорий
       categoryCard.classList.remove("hidden");
 
-      products.forEach((product, index) => {
+      currentProducts.forEach((product, index) => {
         try {
           if (!templateRow) throw new Error("Шаблон для категорий не найден");
 
@@ -124,11 +158,11 @@ sendBtn.addEventListener("click", async () => {
           );
         }
       });
-    } else if (type === "product") {
+    } else if (currentType === "product") {
       // Показываем карточку одного товара
       singleCard.classList.remove("hidden");
 
-      products.forEach((product, index) => {
+      currentProducts.forEach((product, index) => {
         try {
           if (!templateRowSingle)
             throw new Error("Шаблон для одного товара не найден");
@@ -162,7 +196,7 @@ sendBtn.addEventListener("click", async () => {
         }
       });
     } else {
-      throw new Error(`Неизвестный тип страницы: ${type}`);
+      throw new Error(`Неизвестный тип страницы: ${currentType}`);
     }
 
     statusInput.classList.add("hidden");
@@ -172,4 +206,18 @@ sendBtn.addEventListener("click", async () => {
     if (errorText) errorText.textContent = error.message;
     errorInput.classList.remove("hidden");
   }
+});
+
+highBtn.addEventListener("click", async () => {
+  // Скрываем старые ошибки и показываем статус
+  errorInput.classList.add("hidden");
+  statusInput.classList.remove("hidden");
+
+  // Очищаем предыдущие строки (кроме заголовков)
+  document
+    .querySelectorAll(".product-row:not(.header)")
+    .forEach((row) => row.remove());
+  document
+    .querySelectorAll(".product-row-single:not(.header)")
+    .forEach((row) => row.remove());
 });
