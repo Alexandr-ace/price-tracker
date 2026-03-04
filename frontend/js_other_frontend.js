@@ -46,8 +46,27 @@ console.log("singleCard:", singleCard);
 if (templateRow) templateRow.remove();
 if (templateRowSingle) templateRowSingle.remove();
 
+// ---------- Вспомогательная функция для извлечения цены ----------
+function extractPrice(product, type) {
+  const priceStr = type === "category" ? product[2] : product[3];
+  const digits = priceStr.replace(/[^\d]/g, "");
+  const result = digits ? parseInt(digits, 10) : 0;
+  console.log(`extractPrice: "${priceStr}" -> ${result}`);
+  return result;
+}
+
 // ---------- Функция отрисовки (использует глобальные displayProducts и currentType) ----------
 function renderProducts() {
+  console.log("--- renderProducts start ---");
+  console.log("displayProducts.length =", displayProducts.length);
+  console.log("Тип:", currentType);
+  console.log(
+    "До очистки: containerCategories содержит",
+    containerCategories.children.length,
+    "строк, containerSingle содержит",
+    containerSingle.children.length,
+  );
+
   // Очищаем оба контейнера от старых строк (кроме заголовков)
   document
     .querySelectorAll(".product-row:not(.header)")
@@ -55,6 +74,13 @@ function renderProducts() {
   document
     .querySelectorAll(".product-row-single:not(.header)")
     .forEach((row) => row.remove());
+
+  console.log(
+    "После очистки: containerCategories содержит",
+    containerCategories.children.length,
+    "строк, containerSingle содержит",
+    containerSingle.children.length,
+  );
 
   // Скрываем обе карточки, потом покажем нужную
   categoryCard.classList.add("hidden");
@@ -69,7 +95,8 @@ function renderProducts() {
     displayProducts.forEach((product, index) => {
       try {
         const row = templateRow.cloneNode(true);
-        row.querySelector(".product-id").textContent = product[0] || "—";
+        // Заменяем исходный ID на порядковый номер
+        row.querySelector(".product-id").textContent = index + 1;
         row.querySelector(".product-title").textContent = product[1] || "—";
         row.querySelector(".product-price").textContent = product[2] || "—";
 
@@ -102,7 +129,8 @@ function renderProducts() {
     displayProducts.forEach((product, index) => {
       try {
         const row = templateRowSingle.cloneNode(true);
-        row.querySelector(".product-id").textContent = product[0] || "—";
+        // Заменяем исходный ID на порядковый номер
+        row.querySelector(".product-id").textContent = index + 1;
         row.querySelector(".product-title").textContent = product[1] || "—";
         row.querySelector(".product-price").textContent = product[2] || "—";
         row.querySelector(".product-price-notc").textContent =
@@ -131,43 +159,48 @@ function renderProducts() {
   } else {
     console.error(`Неизвестный тип: ${currentType}`);
   }
+
+  console.log(
+    "После добавления: containerCategories содержит",
+    containerCategories.children.length,
+    "строк, containerSingle содержит",
+    containerSingle.children.length,
+  );
+  console.log("--- renderProducts end ---");
 }
 
 // ---------- Функция фильтрации выбросов (IQR) ----------
 function filterOutliers() {
   if (originalProducts.length < 4) {
-    // Если данных мало, просто показываем оригинал
     displayProducts = originalProducts.slice();
     renderProducts();
     return;
   }
 
-  // Извлекаем цены в числа (удаляем пробелы и символ ₽)
-  const prices = originalProducts.map((p) => {
-    const priceStr = currentType === "category" ? p[2] : p[3];
-    return parseFloat(priceStr.replace(/\s/g, "").replace("₽", ""));
-  });
-
-  // Сортируем цены
+  console.log(
+    "filterOutliers: исходная длина originalProducts =",
+    originalProducts.length,
+  );
+  const prices = originalProducts.map((p) => extractPrice(p, currentType));
   prices.sort((a, b) => a - b);
 
-  // Квартили
   const q1 = prices[Math.floor(prices.length * 0.25)];
   const q3 = prices[Math.floor(prices.length * 0.75)];
   const iqr = q3 - q1;
   const lowerBound = q1 - 1.5 * iqr;
   const upperBound = q3 + 1.5 * iqr;
 
-  // Фильтруем оригинальный массив
+  console.log("Границы фильтра:", lowerBound, upperBound);
+
   displayProducts = originalProducts.filter((p) => {
-    const price = parseFloat(
-      (currentType === "category" ? p[2] : p[3])
-        .replace(/\s/g, "")
-        .replace("₽", ""),
-    );
+    const price = extractPrice(p, currentType);
     return price >= lowerBound && price <= upperBound;
   });
 
+  console.log(
+    "filterOutliers: длина displayProducts после фильтра =",
+    displayProducts.length,
+  );
   renderProducts();
 }
 
@@ -188,7 +221,7 @@ clearIcon.addEventListener("click", () => {
   input.focus();
   toggleClearIcon();
 });
-toggleClearIcon(); // начальное состояние
+toggleClearIcon();
 
 // ---------- Основной обработчик: парсинг URL ----------
 sendBtn.addEventListener("click", async () => {
@@ -232,12 +265,10 @@ sendBtn.addEventListener("click", async () => {
       throw new Error("Данные товаров не являются массивом");
     }
 
-    // Сохраняем глобальные данные
     currentType = typeFromServer;
-    originalProducts = productsFromServer.slice(); // копия оригинала
-    displayProducts = productsFromServer.slice(); // начинаем с отображения оригинала
+    originalProducts = productsFromServer.slice();
+    displayProducts = productsFromServer.slice();
 
-    // Отрисовываем
     renderProducts();
 
     statusInput.classList.add("hidden");
@@ -255,11 +286,12 @@ clearBtn.addEventListener("click", () => {
     showTemporaryError("Сначала загрузите данные");
     return;
   }
-  let beforeFilterOutliers = originalProducts.length;
+  const beforeCount = originalProducts.length;
   filterOutliers();
-  let afterFilterOutliers = originalProducts.length;
-  let numberGoods = beforeFilterOutliers - afterFilterOutliers;
-  alert(`После очистки было исключено: ${numberGoods} товаров`);
+  const afterCount = displayProducts.length;
+  const removed = beforeCount - afterCount;
+  alert(`После очистки было исключено: ${removed} товаров`);
+  console.log("clearBtn: afterCount =", displayProducts.length);
 });
 
 // ---------- Кнопка "Самое большое" ----------
@@ -269,18 +301,8 @@ highBtn.addEventListener("click", () => {
     return;
   }
   let maxProduct = displayProducts.reduce((max, p) => {
-    const price = parseFloat(
-      (currentType === "category" ? p[2] : p[3])
-        .replace(/\s/g, "")
-        .replace("₽", ""),
-    );
-    const maxPrice = max
-      ? parseFloat(
-          (currentType === "category" ? max[2] : max[3])
-            .replace(/\s/g, "")
-            .replace("₽", ""),
-        )
-      : -Infinity;
+    const price = extractPrice(p, currentType);
+    const maxPrice = max ? extractPrice(max, currentType) : -Infinity;
     return price > maxPrice ? p : max;
   }, null);
   if (maxProduct) {
@@ -296,18 +318,8 @@ lowBtn.addEventListener("click", () => {
     return;
   }
   let minProduct = displayProducts.reduce((min, p) => {
-    const price = parseFloat(
-      (currentType === "category" ? p[2] : p[3])
-        .replace(/\s/g, "")
-        .replace("₽", ""),
-    );
-    const minPrice = min
-      ? parseFloat(
-          (currentType === "category" ? min[2] : min[3])
-            .replace(/\s/g, "")
-            .replace("₽", ""),
-        )
-      : Infinity;
+    const price = extractPrice(p, currentType);
+    const minPrice = min ? extractPrice(min, currentType) : Infinity;
     return price < minPrice ? p : min;
   }, null);
   if (minProduct) {
@@ -324,12 +336,7 @@ middleBtn.addEventListener("click", () => {
   }
   let sum = 0;
   displayProducts.forEach((p) => {
-    const price = parseFloat(
-      (currentType === "category" ? p[2] : p[3])
-        .replace(/\s/g, "")
-        .replace("₽", ""),
-    );
-    sum += price;
+    sum += extractPrice(p, currentType);
   });
   const avg = sum / displayProducts.length;
   alert(`Средняя цена: ${avg.toFixed(2)} ₽`);

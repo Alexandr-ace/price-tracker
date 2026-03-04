@@ -384,7 +384,11 @@ def get_page_all(html):
                 # Наличие
                 availability_elem = article.find(
                     'div', class_='tsBodyControl500Medium')  # или 'availability'
-                book_info['availability'] = 'out_of_stock' if availability_elem else 'in_stock'
+                if availability_elem:
+                    different = availability_elem.text.strip()
+                    book_info['availability'] = 'out_of_stock' if different == "Похожие" else 'in_stock'
+                else:
+                    book_info['availability'] = 'in_stock'
                 # Добавляем в список
                 books_data.append(book_info)
                 if index > 0 and (index + 1) % 5 == 0:
