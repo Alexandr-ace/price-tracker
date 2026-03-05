@@ -141,7 +141,7 @@ header h1 {
 }
 
 /* Кнопки действий */
-.buttin-section {
+.button-section {
     display: flex;
     align-items: center;
     justify-content: space-evenly;
@@ -396,7 +396,7 @@ footer {
         justify-content: center;
         width: 100%;
     }
-    .buttin-section {
+    .button-section {
         gap: 10px;
     }
     .btn-middle {

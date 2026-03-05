@@ -28,6 +28,8 @@ const singleCard = document.querySelector(".results-card.single");
 let originalProducts = []; // неизменная копия данных с сервера
 let displayProducts = []; // данные, которые сейчас отображаются
 let currentType = ""; // 'category' или 'product'
+let functionalProducts = []; // для хранения очищенных данных
+let turnProduct; // для переключения кнопки возврата
 
 // ========== ПРОВЕРКИ НА ЭТАПЕ ЗАГРУЗКИ ==========
 console.log("=== Проверка элементов DOM ===");
@@ -288,6 +290,7 @@ clearBtn.addEventListener("click", () => {
   }
   const beforeCount = originalProducts.length;
   filterOutliers();
+  functionalProducts = displayProducts.slice();
   const afterCount = displayProducts.length;
   const removed = beforeCount - afterCount;
   alert(`После очистки было исключено: ${removed} товаров`);
@@ -348,6 +351,12 @@ backBtn.addEventListener("click", () => {
     showTemporaryError("Нет исходных данных");
     return;
   }
-  displayProducts = originalProducts.slice();
-  renderProducts();
+  if (displayProducts.length != functionalProducts.length) {
+    displayProducts = functionalProducts.slice();
+    renderProducts();
+  } else if (displayProducts.length != originalProducts.length) {
+    displayProducts = originalProducts.slice();
+    functionalProducts = originalProducts.slice();
+    renderProducts();
+  }
 });
