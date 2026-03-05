@@ -13,8 +13,24 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time  # Для принудительных пауз (использовать с осторожностью)
 from selenium.common.exceptions import TimeoutException, WebDriverException
 import re
+from datetime import date
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from urllib.parse import urlparse
 # Активировать окружение venv\Scripts\activate
+# Теперь вы можете запустить сервер командой: uvicorn ozon_parser:app --reload
+# Заливаем в гит: git add . , git commit -m "Описание изменений" , git push
 # Берем название, цену, наличие, рейтинг с со страниц одного товара
+from base import (main_category, add_product, delete_all_products, get_first_fetch_date,
+                  init_meta_table_many, sanitize_table_name_many, is_table_in_meta_many, add_to_meta_table_many, show_all_products)
+from base_single import (
+    init_meta_table, is_table_in_meta, add_to_meta_table,
+    main_category_single, add_product_single,
+    get_last_fetch_date, delete_last_record_by_date, sanitize_table_name, show_all_products_single
+)
+
+CREATED_TABLES = []
 
 
 def get_page_preview(url, page_type='product'):
@@ -274,7 +290,8 @@ def parse_single_product(html):
     elif availability == 'out_of_stock':
         price_data = get_page_not_available_price(html)
         if price_data:
-            product_data['out_of_stock_price'] = price_data.get('price')
+            product_data['price_with_card'] = "0"
+            product_data['price_without_card'] = price_data.get('price')
 
     # Проверяем, что хотя бы некоторые данные получены
     if all(value is None for value in product_data.values()):
@@ -335,7 +352,6 @@ def get_page_all(html):
         for index, article in enumerate(product_articles):
             try:
                 book_info = {}
-
                 # Название (с проверкой)
                 title_elem = article.find('span', class_='tsBody500Medium')
                 if title_elem:
@@ -343,7 +359,6 @@ def get_page_all(html):
                     ) if title_elem else "Без названия (нет ссылки)"
                 else:
                     book_info['title'] = "Без названия"
-
                 # Цена (с проверкой)
                 price_elem = article.find('span', class_='tsHeadline500Medium')
                 book_info['price'] = price_elem.text.strip(
@@ -369,7 +384,11 @@ def get_page_all(html):
                 # Наличие
                 availability_elem = article.find(
                     'div', class_='tsBodyControl500Medium')  # или 'availability'
-                book_info['availability'] = 'out_of_stock' if availability_elem else 'in_stock'
+                if availability_elem:
+                    different = availability_elem.text.strip()
+                    book_info['availability'] = 'out_of_stock' if different == "Похожие" else 'in_stock'
+                else:
+                    book_info['availability'] = 'in_stock'
                 # Добавляем в список
                 books_data.append(book_info)
                 if index > 0 and (index + 1) % 5 == 0:
@@ -387,40 +406,252 @@ def get_page_all(html):
     return books_data
 
 
-# Тестируем
-# Основной блок
-if __name__ == "__main__":
-    # === ТЕСТ ОДНОГО ТОВАРА ===
-    print("=== Тест одного товара ===")
-    single_product_url = "https://www.ozon.ru/product/pogranichnaya-trilogiya-makkarti-kormak-600817501/?at=Eqtkx1WmJhxlQKPqSk0vp1Wuk1VkyQfkrnpMgSW02PZJ"
+def one_single_product(product_data):
 
-    single_html = get_page_preview(single_product_url, page_type='product')
-    if single_html:
-        product_data = parse_single_product(single_html)
-        if product_data:
-            print(f"\nДанные товара:")
-            for key, value in product_data.items():
-                print(f"  {key}: {value}")
-            # Наш функционал по базе данных
-            
+    # Будет отдельная функция
+    title = product_data.get('title', '')
+    availability = product_data.get('availability', 'unknown')
+    rating = product_data.get('rating', 0.0)
+    price_with_card = product_data.get('price_with_card', '0')
+    price_without_card = product_data.get('price_without_card', '0')
+
+    if title:
+        init_meta_table()
+        name_product = sanitize_table_name(title)
+        product = is_table_in_meta(name_product)
+        if name_product != product:
+            add_to_meta_table(name_product)
+            name = main_category_single(title)
+            add_product_single(name, title, price_with_card,
+                               price_without_card, rating, availability)
+            list_products = show_all_products_single(name)
+            print(list_products)
+            return list_products
+        else:
+            name = main_category_single(title)
+            today = date.today().strftime("%Y%m%d")
+            date_today = get_last_fetch_date(name)
+            if today == date_today:
+                delete_last_record_by_date(name)
+                add_product_single(name, title, price_with_card,
+                                   price_without_card, rating, availability)
+                list_products = show_all_products_single(name)
+                print(list_products)
+                return list_products
+            else:
+                add_product_single(name, title, price_with_card,
+                                   price_without_card, rating, availability)
+                list_products = show_all_products_single(name)
+                print(list_products)
+                return list_products
     else:
-        print("Не удалось загрузить страницу товара.")
+        print("❌ Не удалось получить название товара")
 
-    # === ПАРСИНГ СПИСКА ТОВАРОВ ===
-    print("\n=== Парсинг списка товаров ===")
-    category_url = "https://www.ozon.ru/category/shapki-zhenskie-36513/?category_was_predicted=true&deny_category_prediction=true&from_global=true&text=шапка+зимняя+женская"
 
-    list_html = get_page_preview(category_url, page_type='category')
-    if list_html:
-        all_products = get_page_all(list_html)
+def get_page_url(html):
+    """
+    Извлекает текст из поисковой строки товаров из HTML страницы Ozon.
+    Очищает от ненужных знаков и заменяет пробелы на _.
+    """
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Ищем input с нужным placeholder и берем value
+        input_element = soup.find('input', {'placeholder': 'Искать на Ozon'})
+
+        if input_element and input_element.get('value'):
+            text = input_element['value'].strip()
+
+            # Оставляем только буквы (включая кириллицу), цифры и пробелы
+            cleaned_text = re.sub(r'[^а-яА-ЯёЁa-zA-Z0-9\s]', '', text)
+
+            # Заменяем один или несколько пробелов на одно подчеркивание
+            final_text = re.sub(r'\s+', '_', cleaned_text.strip())
+
+            print(f"Поисковый запрос: '{final_text}'")
+            return final_text
+
+        print("Не удалось найти поисковую строку или она пустая")
+        return "Главная_страница"
+
+    except Exception as e:
+        print(f"Ошибка в get_page_url: {e}")
+        return "Ошибка"
+
+
+def main_category_product(placeholder, all_products):
+    if placeholder:
+        init_meta_table_many()
+        name_product = sanitize_table_name_many(placeholder)
+        product = is_table_in_meta_many(name_product)
+        if name_product != product:
+            add_to_meta_table_many(name_product)
+            if all_products:
+                today = date.today().strftime("%Y%m%d")  # "20240115"
+                name = main_category(today, placeholder)
+                for product in all_products:
+                    # Извлекаем данные из словаря
+                    title = product['title']
+                    price = product['price']
+                    rating = product['rating']
+                    availability = product['availability']
+                    add_product(name, title, price, rating, availability)
+                list_products = show_all_products(name)
+                ###############################
+                # Сохраняем в файл
+                # df = file_csv_funk(
+                #     all_products, filename_prefix='ozon_products')
+                print(list_products)
+                return list_products
+            else:
+                print(
+                    "if placeholder in CREATED_TABLES_PRODUCT:CREATED_TABLES_PRODUCT.remove(placeholder")
+        else:
+            today = date.today().strftime("%Y%m%d")  # "20240115"
+            name = main_category(today, placeholder)
+            table_date = get_first_fetch_date(name)
+            if table_date:
+                table_date_str = str(table_date).replace('-', '')
+                if table_date_str == today:
+                    # Таблица создана сегодня - перезаписываем
+                    delete_all_products(name)
+                    print(f"🔄 Перезаписываю таблицу '{name}' (сегодня)")
+                else:
+                    # Таблица старая - создаем новую с сегодняшней датой
+                    print(
+                        f"📅 Создаю новую таблицу (старая от {table_date_str})")
+            else:
+                # Таблица пустая или не существует
+                print(f"🆕 Таблица '{name}' пустая, заполняю")
+            # Добавляем товары
+            if all_products:
+                for product in all_products:
+                    # Извлекаем данные из словаря
+                    title = product['title']
+                    price = product['price']
+                    rating = product['rating']
+                    availability = product['availability']
+                    add_product(name, title, price, rating, availability)
+                # Сохраняем в файл
+                list_products = show_all_products(name)
+                # df = file_csv_funk(
+                #     all_products, filename_prefix='ozon_products')
+                print(list_products)
+                return list_products
+    else:
+        print("❌ Не удалось получить название группы товара")
         if all_products:
+            ####################################
             # Сохраняем в файл
-            # Наш функционал по пазе данных
-
-            df = file_csv_funk(all_products, filename_prefix='ozon_products')
+            df = file_csv_funk(
+                all_products, filename_prefix='ozon_products')
+            return df
         else:
             print("Нет данных для создания CSV.")
-    else:
-        print("Не удалось загрузить страницу категории.")
 
-    print("\n=== ВЫПОЛНЕНИЕ ЗАВЕРШЕНО ===")
+
+def get_ozon_url_type(url):
+    parsed = urlparse(url)
+    path = parsed.path
+    if path.startswith('/product/'):
+        return 'product'
+    elif path.startswith('/category/'):
+        return 'category'
+    else:
+        return 'unknown'
+
+
+# Тестируем
+if __name__ == "__main__":
+    url_single = "https://www.ozon.ru/product/noski-alaska-2-pary-3085119107/?at=36tWKVQz6hgADL6Mtrop0D0hA2JRPGHwWpE0rH8ykB9E"
+    url_category = "https://www.ozon.ru/category/aksessuary-7697/?category_was_predicted=true&deny_category_prediction=true&from_global=true&text=шапки+мужские+зимние"
+    url = "https://www.ozon.ru/product/noski-alaska-2-pary-3085119107/?at=36tWKVQz6hgADL6Mtrop0D0hA2JRPGHwWpE0rH8ykB9E"
+    url_main = get_ozon_url_type(url)
+    if url_main == 'product':
+        # === ТЕСТ ОДНОГО ТОВАРА ===
+        print("=== Тест одного товара ===")
+        single_product_url = url
+
+        single_html = get_page_preview(single_product_url, page_type='product')
+        if single_html:
+            product_data = parse_single_product(single_html)
+            if product_data:
+                print(f"\nДанные товара:")
+                for key, value in product_data.items():
+                    print(f"  {key}: {value}")
+                one_single_product(product_data)
+                # data_manager.save_single_product(product_data, single_product_url)
+        else:
+            print("Не удалось загрузить страницу товара.")
+    elif url_main == 'category':
+        # === ТЕСТ ПАРСИНГА СПИСКА ТОВАРОВ ===
+        print("\n=== Парсинг списка товаров ===")
+        category_url = url
+        list_html = get_page_preview(category_url, page_type='category')
+        if list_html:
+            all_products = get_page_all(list_html)
+            placeholder = get_page_url(list_html)
+            main_category_product(placeholder, all_products)
+            # data_manager.save_category_products(placeholder, all_products)
+        else:
+            print("Не удалось загрузить страницу категории.")
+
+        print("\n=== ВЫПОЛНЕНИЕ ЗАВЕРШЕНО ===")
+    else:
+        print("Не указан URL")
+
+
+# Основной блок
+app = FastAPI()
+
+# Разрешаем запросы с любого источника (CORS) — для разработки
+app.add_middleware(
+    CORSMiddleware,
+    # можно указать конкретные адреса, например ["http://localhost:5500"]
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Модель данных, которую мы ожидаем от фронтенда
+
+
+class Item(BaseModel):
+    url: str
+
+# Эндпоинт, который принимает POST-запросы по адресу /send-url
+
+
+@app.post("/parce")
+async def send_url(item: Item):
+    print(f"Получен URL: {item.url}")          # видим в консоли сервера
+    category_url = item.url
+    url_main = get_ozon_url_type(category_url)
+    if url_main == 'product':
+        single_html = get_page_preview(category_url, page_type='product')
+        # if not single_html:
+        #     raise HTTPException(
+        #         status_code=500, detail="Не удалось загрузить страницу товара")
+        product_data = parse_single_product(single_html)
+        # if not product_data:
+        #     raise HTTPException(
+        #         status_code=404, detail="Не удалось распарсить товар")
+        products = one_single_product(product_data)
+        return ['product', products]
+    elif url_main == 'category':
+        list_html = get_page_preview(category_url, page_type='category')
+        all_products = get_page_all(list_html)
+        placeholder = get_page_url(list_html)
+        products = main_category_product(placeholder, all_products)
+        return ['category', products]
+    else:
+        print("Ошибка")
+
+
+# Для проверки можно добавить корневой эндпоинт
+
+
+@app.get("/")
+async def root():
+    return {"message": "Сервер работает!"}
