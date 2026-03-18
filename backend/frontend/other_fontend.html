@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Трекер цен</title>
+    <link rel="stylesheet" href="css_other_frontend.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1><i class="fas fa-code"></i>Трекер цен</h1>
+        <p class="subtitle">
+          Введите URL веб-страницы, чтобы получить её заголовок и мета-описание
+        </p>
+      </header>
+      <main>
+        <div class="input-section">
+          <div class="url-input-group">
+            <i class="fas fa-link icon"></i>
+            <input
+              type="url"
+              id="urlInput"
+              placeholder="https://example.com"
+              required
+            />
+            <i class="fas fa-times-circle icon fas-hidden" id="clearIcon"></i>
+            <button id="parseButton" class="btn-parse">
+              <i class="fas fa-play"></i> Парсить
+            </button>
+          </div>
+          <p class="hint">
+            Попробуйте:
+            https://www.ozon.ru/category/aksessuary-7697/?category_was_predicted=true&deny_category_prediction=true&from_global=true&text=шапки+мужские+зимние
+          </p>
+        </div>
+
+        <div class="button-section">
+          <button class="btn-middle" id="clearButton">Очистка</button>
+          <button class="btn-middle" id="highButton">Большее</button>
+          <button class="btn-middle" id="middleButton">Среднее</button>
+          <button class="btn-middle" id="lowButton">Меньшее</button>
+          <button class="btn-middle" id="backButton">Назад</button>
+          <button class="btn-middle">Excel-файл</button>
+        </div>
+
+        <div class="status-section">
+          <div id="status" class="status hidden">
+            <i class="fas fa-spinner fa-spin"></i>
+            <span id="statusText">Идет парсинг...</span>
+          </div>
+        </div>
+
+        <div class="results-section">
+          <h2><i class="fas fa-poll"></i> Результаты</h2>
+
+          <!-- Для группы категории товаров -->
+          <div class="results-card categories">
+            <div id="container-categories" class="results-grid">
+              <!-- СТРОКА 1: ЗАГОЛОВКИ КОЛОНОК -->
+              <div class="grid-row header">
+                <div><i class="fas fa-hashtag"></i> ID</div>
+                <div><i class="fas fa-heading"></i> Название</div>
+                <div><i class="fas fa-tag"></i> Цена</div>
+                <div><i class="fas fa-star"></i> Рейтинг</div>
+                <div><i class="fas fa-box"></i> Наличие</div>
+                <div><i class="fas fa-calendar-alt"></i> Дата</div>
+              </div>
+              <!-- СТРОКА 2: ПУСТАЯ СТРОКА-ОБРАЗЕЦ (ДЛЯ КЛОНИРОВАНИЯ) -->
+              <div class="grid-row product-row">
+                <div class="product-id"></div>
+                <div class="product-title"></div>
+                <div class="product-price"></div>
+                <div class="product-rating"></div>
+                <div class="product-availability"></div>
+                <div class="product-date"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Для одного товара -->
+          <div class="results-card single hidden">
+            <div id="container-single" class="results-grid">
+              <!-- СТРОКА 1: ЗАГОЛОВКИ КОЛОНОК -->
+              <div class="grid-row-single header">
+                <div><i class="fas fa-hashtag"></i> ID</div>
+                <div><i class="fas fa-heading"></i> Название</div>
+                <div><i class="fas fa-tag"></i> Цена</div>
+                <div><i class="fas fa-tag"></i> Цена(без О.Б)</div>
+                <div><i class="fas fa-star"></i> Рейтинг</div>
+                <div><i class="fas fa-box"></i> Наличие</div>
+                <div><i class="fas fa-calendar-alt"></i> Дата</div>
+              </div>
+
+              <!-- СТРОКА 2: ПУСТАЯ СТРОКА-ОБРАЗЕЦ (ДЛЯ КЛОНИРОВАНИЯ) -->
+              <div class="grid-row-single product-row product-row-single">
+                <div class="product-id"></div>
+                <div class="product-title"></div>
+                <div class="product-price"></div>
+                <div class="product-price-notc"></div>
+                <div class="product-rating"></div>
+                <div class="product-availability"></div>
+                <div class="product-date"></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="errorAlert" class="error-alert hidden">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span id="errorText">Произошла ошибка</span>
+          </div>
+        </div>
+
+        <div class="tips-box">
+          <h3><i class="fas fa-lightbulb"></i> Быстрые действия</h3>
+          <ul class="tips-list">
+            <li>
+              <span class="tip-highlight">Очистка</span> — удаляет ценовые
+              выбросы (IQR)
+            </li>
+            <li>
+              <span class="tip-highlight">Большее/Меньшее</span> — показывает
+              товар с экстремальной ценой
+            </li>
+            <li>
+              <span class="tip-highlight">Среднее</span> — вычисляет среднюю
+              цену
+            </li>
+            <li>
+              <span class="tip-highlight">Назад</span> — возвращает полный
+              список
+            </li>
+            <li><span class="tip-highlight">Excel-файл</span> — скоро</li>
+          </ul>
+        </div>
+      </main>
+
+      <footer>
+        <p>Учебный проект по разработке трекера цен | 2026</p>
+      </footer>
+    </div>
+    <script src="js_other_frontend.js"></script>
+  </body>
+</html>
