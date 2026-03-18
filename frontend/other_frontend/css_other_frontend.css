@@ -21,7 +21,7 @@ body {
 }
 
 /* Контейнер */
-#container {
+.container {
     width: 100%;
     max-width: 1300px;
     background: #1a1f2f; /* тёмно-серо-синий */
